@@ -70,6 +70,7 @@ def get_max_upload_date():
             supabase.table("jobs_all_roles")
             .select("created_at")
             .not_.is_("created_at", None)
+            .eq("source", "Karmafy")
             .order("created_at", desc=True)
             .limit(1)
             .execute()
