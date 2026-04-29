@@ -2,8 +2,7 @@ name: Run Update Cron Job
 
 on:
   schedule:
-    - cron: "30 23 * * *"
-    - cron: "30 3 * * *"
+    - cron: "30 14 * * *"
   workflow_dispatch:
 
 concurrency:
