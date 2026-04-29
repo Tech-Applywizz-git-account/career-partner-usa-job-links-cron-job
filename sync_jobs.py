@@ -67,31 +67,31 @@ except Exception as e:
 def get_max_upload_date():
     try:
         response = (
-            supabase.table("job_jobrole_all")
-            .select("upload_date")
-            .not_.is_("upload_date", None)
-            .order("upload_date", desc=True)
+            supabase.table("jobs_all_roles")
+            .select("created_at")
+            .not_.is_("created_at", None)
+            .order("created_at", desc=True)
             .limit(1)
             .execute()
         )
 
         if not response.data:
             print("No existing records found → full sync")
-            return datetime(1970, 1, 1)
+            return datetime(2026, 4, 28)
 
-        raw_date = response.data[0]["upload_date"]
+        raw_date = response.data[0]["created_at"]
 
         if isinstance(raw_date, str):
             dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
         else:
             dt = raw_date
 
-        print(f"Max upload date: {dt}")
+        print(f"Max upload date (from created_at): {dt}")
         return dt
 
     except Exception as e:
         print(f"Error fetching max upload date: {e}")
-        return datetime(1970, 1, 1)
+        return datetime(2026, 4, 28)
 
 last_time = get_max_upload_date()
 
@@ -119,21 +119,16 @@ print("=" * 80)
 sql_query = f"""
 SELECT
     j.id AS job_id,
-    jr.id AS job_role_id,
-    jr.name AS job_role_name,
-    j.source,
-    j.title,
-    j.company,
+    jr.id AS role_id,
+    jr.name AS role_name,
+    j.country_inferred AS country,
     j.location,
-    j.url,
+    j.title,
+    j.company AS company_name,
+    j.url AS job_url,
     j.description,
-    j."applyType" AS apply_type,
-    j."rawText" AS raw_text,
     j."datePosted" AS date_posted,
-    j."hoursBackPosted" AS hours_back_posted,
-    j."yearsExpRequired" AS years_exp_required,
-    j."uploadDate" AS upload_date,
-    j."ingestedAt" AS ingested_at
+    j."uploadDate" AS upload_date
 
 FROM "karmafy_job" j
 LEFT JOIN "karmafy_jobrole" jr
@@ -141,7 +136,7 @@ LEFT JOIN "karmafy_jobrole" jr
 
 WHERE j."uploadDate" >= '{start_time}'
 AND j."uploadDate" < '{end_time}'
-
+AND j."country-inferred" in ('United States of America','United States', 'US', 'USA')
 
 ORDER BY j."uploadDate" ASC
 """
@@ -160,22 +155,20 @@ def clean_value(v):
 def prepare_record(row):
     return {
         "job_id": int(row["job_id"]) if pd.notna(row["job_id"]) else None,
-        "job_role_id": int(row["job_role_id"]) if pd.notna(row["job_role_id"]) else None,
-        "job_role_name": clean_value(row["job_role_name"]),
-        "source": clean_value(row["source"]) or "",
-        "title": clean_value(row["title"]) or "",
-        "company": clean_value(row["company"]) or "",
-        "location": clean_value(row["location"]) or "",
-        "url": clean_value(row["url"]) or "",
-        "description": clean_value(row["description"]) or "",
-        "apply_type": clean_value(row["apply_type"]),
-        "raw_text": clean_value(row["raw_text"]) or "",
+        "role_id": int(row["role_id"]) if pd.notna(row["role_id"]) else None,
+        "role_name": clean_value(row["role_name"]),
+        "indeed_search_country": clean_value(row["country"]),
+        "country": clean_value(row["country"]),
+        "location": clean_value(row["location"]),
+        "title": clean_value(row["title"]),
+        "company_name": clean_value(row["company_name"]),
+        "job_url": clean_value(row["job_url"]),
+        "job_url_direct": clean_value(row["job_url"]),
         "date_posted": row["date_posted"].isoformat() if pd.notna(row["date_posted"]) else None,
-        "hours_back_posted": int(row["hours_back_posted"]) if pd.notna(row["hours_back_posted"]) else 0,
-        "years_exp_required": clean_value(row["years_exp_required"]),
-        "upload_date": row["upload_date"].isoformat() if pd.notna(row["upload_date"]) else None,
-        "ingested_at": row["ingested_at"].isoformat() if pd.notna(row["ingested_at"]) else None,
-        "country": "United States of America"
+        "is_remote": None,
+        "description": clean_value(row["description"]),
+        "created_at": row["upload_date"].isoformat() if pd.notna(row["upload_date"]) else None,
+        "source": "Karmafy"
     }
 
 
@@ -211,8 +204,8 @@ try:
 
             try:
                 response = (
-                    supabase.table("job_jobrole_all")
-                    .upsert(batch, on_conflict="job_id")
+                    supabase.table("jobs_all_roles")
+                    .upsert(batch, on_conflict="job_url_direct")
                     .execute()
                 )
 
