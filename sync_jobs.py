@@ -78,7 +78,7 @@ def get_max_upload_date():
 
         if not response.data:
             print("No existing records found → full sync")
-            return datetime(2026, 4, 28)
+            return datetime(2026, 4, 28, tzinfo=timezone.utc)
 
         raw_date = response.data[0]["created_at"]
 
@@ -92,7 +92,7 @@ def get_max_upload_date():
 
     except Exception as e:
         print(f"Error fetching max upload date: {e}")
-        return datetime(2026, 4, 28)
+        return datetime(2026, 4, 28, tzinfo=timezone.utc)
 
 last_time = get_max_upload_date()
 
