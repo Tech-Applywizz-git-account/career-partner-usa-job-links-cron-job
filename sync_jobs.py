@@ -136,7 +136,7 @@ LEFT JOIN "karmafy_jobrole" jr
 
 WHERE j."uploadDate" >= '{start_time}'
 AND j."uploadDate" < '{end_time}'
-AND j."country-inferred" in ('United States of America','United States', 'US', 'USA')
+AND j.country_inferred in ('United States of America','United States', 'US', 'USA')
 
 ORDER BY j."uploadDate" ASC
 """
