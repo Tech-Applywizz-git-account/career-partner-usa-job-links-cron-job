@@ -61,53 +61,16 @@ except Exception as e:
 
 
 # =========================
-# FETCH MAX UPLOAD DATE
+# CALCULATE PROCESSING WINDOW
 # =========================
 
-def get_max_upload_date():
-    try:
-        response = (
-            supabase.table("jobs_all_roles")
-            .select("created_at")
-            .not_.is_("created_at", None)
-            .eq("source", "Karmafy")
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            print("No existing records found → full sync")
-            return datetime(2026, 4, 28, tzinfo=timezone.utc)
-
-        raw_date = response.data[0]["created_at"]
-
-        if isinstance(raw_date, str):
-            dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
-        else:
-            dt = raw_date
-
-        print(f"Max upload date (from created_at): {dt}")
-        return dt
-
-    except Exception as e:
-        print(f"Error fetching max upload date: {e}")
-        return datetime(2026, 4, 28, tzinfo=timezone.utc)
-
-last_time = get_max_upload_date()
-
-# Move forward by full window instead of 1 second
-start_time = last_time + WINDOW_SIZE
-
-
-
-
-# ✅ prevent future overflow
-from datetime import timezone
 now = datetime.now(timezone.utc)
 
-end_time = min(start_time + WINDOW_SIZE, now)
-
+# We sync a rolling window of the last 2 days (48 hours) to ensure yesterday's 
+# data is fully covered and we never miss any jobs (even if the cron job experiences 
+# temporary delays or failures). Overlapping records are handled safely by Supabase's upsert on-conflict.
+start_time = now - timedelta(days=2)
+end_time = now
 
 print("=" * 80)
 print(f"Processing window: {start_time} → {end_time}")
