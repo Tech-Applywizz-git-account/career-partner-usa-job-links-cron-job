@@ -91,6 +91,8 @@ SELECT
     j.salary,
     j.company AS company_name,
     j.url AS job_url,
+    j.posted_by_profile,
+    j.poster_full_name,
     j.description,
     j."datePosted" AS date_posted,
     j."uploadDate" AS upload_date
@@ -130,6 +132,8 @@ def prepare_record(row):
         "company_name": clean_value(row["company_name"]),
         "job_url": clean_value(row["job_url"]),
         "job_url_direct": clean_value(row["job_url"]),
+        "posted_by_profile": clean_value(row["posted_by_profile"]),
+        "poster_full_name": clean_value(row["poster_full_name"]),
         "date_posted": row["date_posted"].isoformat() if pd.notna(row["date_posted"]) else None,
         "is_remote": None,
         "description": clean_value(row["description"]),
